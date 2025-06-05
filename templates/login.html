@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Career Guidance</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="animated-bg"></div>
+    <div class="main-content">
+        <header class="header">
+            <div class="container">
+                <nav class="nav">
+                    <a href="/" class="logo">CareerPath ZW</a>
+                    <ul class="nav-links">
+                        <li><a href="/" class="nav-link">Home</a></li>
+                        <li><a href="/assessment" class="nav-link">Assessment</a></li>
+                        <li><a href="/profile" class="nav-link">Profile</a></li>
+                        <li><a href="/login" class="nav-link active">Login</a></li>
+                        <li><a href="/register" class="nav-link">Register</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </header>
+
+        <main class="container mt-5">
+            <div style="max-width: 500px; margin: 2rem auto;">
+                <div class="card">
+                    <div class="card-header">
+                        <h1 class="card-title text-center" style="width:100%;">Login to Your Account</h1>
+                    </div>
+                    <div class="card-content">
+                        <form id="login-form">
+                            <div id="error-message" class="message message-bot" style="display:none; background-color: var(--error-color); color: white; margin-bottom: 1rem;">
+                                <div class="message-bubble" id="error-text" style="background-color: var(--error-color); color: white;"></div>
+                            </div>
+                            <div class="form-group">
+                                <label for="email" class="form-label"><i class="fas fa-envelope"></i> Email Address</label>
+                                <input type="email" id="email" name="email" class="form-input" required placeholder="e.g., user@example.com">
+                            </div>
+                            <div class="form-group">
+                                <label for="password" class="form-label"><i class="fas fa-lock"></i> Password</label>
+                                <input type="password" id="password" name="password" class="form-input" required placeholder="Enter your password">
+                            </div>
+                            <button type="submit" class="btn btn-primary" style="width: 100%;">
+                                <span class="btn-text">Login</span>
+                                <span id="login-spinner" class="spinner" style="display: none; border-top-color: white; width:16px; height:16px;"></span>
+                            </button>
+                        </form>
+                        <p class="mt-3 text-center text-secondary">
+                            Don't have an account? <a href="/register" style="color: var(--primary-color);">Register here</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer mt-5 text-center" style="padding: 2rem 0; border-top: 1px solid var(--border-color); position: absolute; bottom: 0; width: 100%;">
+            <p>&copy; <span id="currentYear"></span> CareerPath ZW. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script>
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
+        const loginForm = document.getElementById('login-form');
+        const errorMessagediv = document.getElementById('error-message');
+        const errorText = document.getElementById('error-text');
+        const loginButton = loginForm.querySelector('button[type="submit"]');
+        const loginButtonText = loginButton.querySelector('.btn-text');
+        const loginSpinner = loginButton.querySelector('#login-spinner');
+
+
+        loginForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            errorMessagediv.style.display = 'none';
+            loginButtonText.style.display = 'none';
+            loginSpinner.style.display = 'inline-block';
+            loginButton.disabled = true;
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email: email, password: password }),
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Store login state (e.g., in localStorage or session cookie handled by backend)
+                    localStorage.setItem('userLoggedIn', 'true');
+                    localStorage.setItem('user_email', data.user.email);
+                    localStorage.setItem('user_id', data.user.id);
+                    window.location.href = '/profile'; // Redirect to profile or dashboard
+                } else {
+                    errorText.textContent = data.message || 'Login failed. Please check your credentials.';
+                    errorMessagediv.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                errorText.textContent = 'An error occurred. Please try again later.';
+                errorMessagediv.style.display = 'block';
+            } finally {
+                loginButtonText.style.display = 'inline-block';
+                loginSpinner.style.display = 'none';
+                loginButton.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

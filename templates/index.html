@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Career Guidance Chatbot</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Font Awesome for icons (optional, but good for buttons) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="animated-bg"></div>
+    <div class="main-content">
+        <header class="header">
+            <div class="container">
+                <nav class="nav">
+                    <a href="/" class="logo">CareerPath ZW</a>
+                    <ul class="nav-links">
+                        <li><a href="/" class="nav-link active">Home</a></li>
+                        <li><a href="/assessment" class="nav-link">Assessment</a></li>
+                        <li><a href="/profile" class="nav-link">Profile</a></li>
+                        <li><a href="/login" class="nav-link" id="login-link">Login</a></li>
+                        <li><a href="/register" class="nav-link" id="register-link">Register</a></li>
+                        <li><a href="#" class="nav-link" id="logout-link" style="display:none;">Logout</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </header>
+
+        <main class="container">
+            <section class="hero">
+                <h1 class="hero-title">Find Your Future Career Path</h1>
+                <p class="hero-subtitle">Get personalized guidance and explore career opportunities in Zimbabwe. Chat with our AI assistant, take assessments, and plan your journey.</p>
+                <div class="hero-actions">
+                    <a href="/assessment" class="btn btn-primary"><i class="fas fa-clipboard-list"></i> Take Assessment</a>
+                    <a href="#chat" class="btn btn-secondary"><i class="fas fa-comments"></i> Chat Now</a>
+                </div>
+            </section>
+
+            <section id="chat" class="mt-5">
+                <div class="chat-container">
+                    <div class="chat-header">
+                        AI Career Advisor
+                    </div>
+                    <div class="chat-messages" id="chat-messages">
+                        <!-- Messages will be appended here by JavaScript -->
+                        <div class="message message-bot">
+                            <div class="message-bubble">
+                                Hello! I'm your AI Career Advisor. How can I help you today? You can ask about career paths like "Tell me about becoming a doctor" or type /help for commands.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chat-input-container">
+                        <input type="text" id="chat-input" class="form-input chat-input" placeholder="Type your message or command...">
+                        <button id="send-button" class="btn btn-primary btn-icon"><i class="fas fa-paper-plane"></i></button>
+                    </div>
+                </div>
+            </section>
+
+             <!-- Placeholder for Pathway Display -->
+            <section id="pathway-display-section" class="mt-5" style="display: none;">
+                <div class="pathway-container">
+                    <div class="pathway-header">
+                        <h2 id="pathway-title-display" class="pathway-title">Career Pathway</h2>
+                        <p id="pathway-description-display" class="text-secondary">Details about the selected career path.</p>
+                    </div>
+                    <div id="pathway-meta-display" class="pathway-meta">
+                        <!-- Meta items will be injected here -->
+                    </div>
+                    <div class="timeline" id="pathway-timeline-display">
+                        <!-- Timeline items will be injected here -->
+                    </div>
+                    <div class="card mt-4">
+                        <div class="card-content">
+                             <h4><i class="fas fa-lightbulb"></i> Skills Required:</h4>
+                             <ul id="pathway-skills-display" class="list-styled"></ul>
+                             <h4><i class="fas fa-sticky-note"></i> Notes:</h4>
+                             <p id="pathway-notes-display"></p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Placeholder for List Display -->
+            <section id="list-display-section" class="mt-5" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 id="list-title-display" class="card-title">List</h3>
+                    </div>
+                    <div class="card-content">
+                        <ul id="list-items-display" class="list-group">
+                            <!-- List items will be injected here -->
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <footer class="footer mt-5 text-center" style="padding: 2rem 0; border-top: 1px solid var(--border-color);">
+            <p>&copy; <span id="currentYear"></span> CareerPath ZW. All rights reserved.</p>
+            <p class="text-muted">Empowering your career journey in Zimbabwe.</p>
+        </footer>
+    </div>
+
+    <script>
+        // Basic JavaScript for interactivity (can be expanded in a separate app.js)
+        document.addEventListener('DOMContentLoaded', function() {
+            const sendButton = document.getElementById('send-button');
+            const chatInput = document.getElementById('chat-input');
+            const chatMessages = document.getElementById('chat-messages');
+
+            const pathwayDisplaySection = document.getElementById('pathway-display-section');
+            const pathwayTitleDisplay = document.getElementById('pathway-title-display');
+            const pathwayDescriptionDisplay = document.getElementById('pathway-description-display');
+            const pathwayMetaDisplay = document.getElementById('pathway-meta-display');
+            const pathwayTimelineDisplay = document.getElementById('pathway-timeline-display');
+            const pathwaySkillsDisplay = document.getElementById('pathway-skills-display');
+            const pathwayNotesDisplay = document.getElementById('pathway-notes-display');
+
+            const listDisplaySection = document.getElementById('list-display-section');
+            const listTitleDisplay = document.getElementById('list-title-display');
+            const listItemsDisplay = document.getElementById('list-items-display');
+
+            // Set current year in footer
+            document.getElementById('currentYear').textContent = new Date().getFullYear();
+
+            // Check login status (simplified)
+            const loginLink = document.getElementById('login-link');
+            const registerLink = document.getElementById('register-link');
+            const logoutLink = document.getElementById('logout-link');
+            const profileLink = document.querySelector('a[href="/profile"]');
+
+            if (localStorage.getItem('userLoggedIn') === 'true') {
+                loginLink.style.display = 'none';
+                registerLink.style.display = 'none';
+                logoutLink.style.display = 'block';
+                if(profileLink) profileLink.style.display = 'block';
+            } else {
+                logoutLink.style.display = 'none';
+                 if(profileLink) profileLink.style.display = 'block'; // Or hide if profile is only for logged in users
+            }
+
+            logoutLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                localStorage.removeItem('userLoggedIn');
+                localStorage.removeItem('user_email');
+                localStorage.removeItem('user_id');
+                window.location.href = '/login';
+            });
+
+
+            function addMessage(message, type) {
+                const messageDiv = document.createElement('div');
+                messageDiv.classList.add('message', type === 'user' ? 'message-user' : 'message-bot');
+                
+                const bubbleDiv = document.createElement('div');
+                bubbleDiv.classList.add('message-bubble');
+                bubbleDiv.textContent = message;
+                
+                messageDiv.appendChild(bubbleDiv);
+                chatMessages.appendChild(messageDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight; // Scroll to bottom
+            }
+
+            function displayPathway(data) {
+                pathwayTitleDisplay.textContent = data.title || "Career Pathway";
+                pathwayDescriptionDisplay.textContent = data.description || "No description available.";
+                
+                pathwayMetaDisplay.innerHTML = ''; // Clear previous meta
+                if (data.difficulty) pathwayMetaDisplay.innerHTML += `<div class="meta-item"><span class="meta-label">Difficulty</span><span class="meta-value">${data.difficulty}</span></div>`;
+                if (data.job_prospects) pathwayMetaDisplay.innerHTML += `<div class="meta-item"><span class="meta-label">Job Prospects</span><span class="meta-value">${data.job_prospects}</span></div>`;
+                if (data.salary_range) pathwayMetaDisplay.innerHTML += `<div class="meta-item"><span class="meta-label">Salary (USD)</span><span class="meta-value">${data.salary_range}</span></div>`;
+
+                pathwayTimelineDisplay.innerHTML = ''; // Clear previous timeline
+                if (data.stages && data.stages.length > 0) {
+                    data.stages.forEach((stage, index) => {
+                        const item = document.createElement('div');
+                        item.className = 'timeline-item';
+                        item.innerHTML = `
+                            <div class="timeline-marker">${index + 1}</div>
+                            <div class="timeline-content">
+                                <h4 class="timeline-stage">${stage.stage}</h4>
+                                ${stage.duration ? `<p class="timeline-duration"><i class="fas fa-clock"></i> Duration: ${stage.duration}</p>` : ''}
+                                <p>${stage.requirements}</p>
+                                ${stage.universities_list ? `<p class="mt-2"><strong>Universities:</strong> ${stage.universities_list.join(', ')}</p>` : ''}
+                            </div>`;
+                        pathwayTimelineDisplay.appendChild(item);
+                    });
+                }
+
+                pathwaySkillsDisplay.innerHTML = '';
+                if(data.skills_required && data.skills_required.length > 0){
+                    data.skills_required.forEach(skill => {
+                        const li = document.createElement('li');
+                        li.textContent = skill;
+                        pathwaySkillsDisplay.appendChild(li);
+                    });
+                } else {
+                    pathwaySkillsDisplay.innerHTML = '<li>No specific skills listed.</li>';
+                }
+                pathwayNotesDisplay.textContent = data.notes || "No additional notes.";
+
+
+                pathwayDisplaySection.style.display = 'block';
+                listDisplaySection.style.display = 'none'; // Hide list if pathway is shown
+                pathwayDisplaySection.scrollIntoView({ behavior: 'smooth' });
+            }
+
+            function displayList(data) {
+                listTitleDisplay.textContent = data.list_title || "Information";
+                listItemsDisplay.innerHTML = ''; // Clear previous items
+
+                if (data.items && data.items.length > 0) {
+                    data.items.forEach(item => {
+                        const li = document.createElement('li');
+                        li.className = 'list-group-item card mb-2'; // Using card for better styling of list items
+                        
+                        let content = `<div class="card-body">`;
+                        if(item.command && item.description) { // For help commands
+                             content += `<h5 class="card-title">${item.command}</h5><p class="card-text">${item.description}</p>`;
+                        } else if (item.name && item.location) { // For universities
+                            content += `<h5 class="card-title">${item.name}</h5>`;
+                            content += `<p class="card-text mb-1"><strong>Location:</strong> ${item.location}</p>`;
+                            content += `<p class="card-text mb-1"><strong>Type:</strong> ${item.type}</p>`;
+                            content += `<p class="card-text mb-1"><strong>Established:</strong> ${item.established}</p>`;
+                            if (item.website) content += `<p class="card-text mb-1"><strong>Website:</strong> <a href="${item.website}" target="_blank" rel="noopener noreferrer">${item.website}</a></p>`;
+                            if (item.application_info) content += `<p class="card-text"><strong>Application Info:</strong> ${item.application_info}</p>`;
+                        } else if (item.message && item.response) { // For history
+                             content += `<p class="card-text"><strong>You:</strong> ${item.message}</p>`;
+                             content += `<p class="card-text"><strong>Bot:</strong> ${typeof item.response === 'object' ? JSON.stringify(item.response) : item.response}</p>`;
+                             content += `<p class="card-text text-muted"><small>${new Date(item.timestamp).toLocaleString()}</small></p>`;
+                        } else {
+                             content += `<p class="card-text">${JSON.stringify(item)}</p>`;
+                        }
+                        content += `</div>`;
+                        li.innerHTML = content;
+                        listItemsDisplay.appendChild(li);
+                    });
+                }
+                listDisplaySection.style.display = 'block';
+                pathwayDisplaySection.style.display = 'none'; // Hide pathway if list is shown
+                listDisplaySection.scrollIntoView({ behavior: 'smooth' });
+            }
+            
+            function handleBotResponse(response) {
+                // Hide all special display sections by default
+                pathwayDisplaySection.style.display = 'none';
+                listDisplaySection.style.display = 'none';
+
+                if (response.response_type === "answer") {
+                    let answerText = response.data.text || "Sorry, I could not process that.";
+                    if (response.data.sources) {
+                        answerText += "\n\nSources:\n";
+                        response.data.sources.forEach(source => {
+                            answerText += `- ${source.filename} (Snippet: ${source.content_snippet})\n`;
+                        });
+                    }
+                    addMessage(answerText, 'bot');
+                } else if (response.response_type === "pathway") {
+                    if (response.data && response.data.title) {
+                        addMessage(`Here is the pathway for ${response.data.title}:`, 'bot');
+                        displayPathway(response.data);
+                    } else {
+                        addMessage("Sorry, I couldn't find details for that career pathway.", 'bot');
+                    }
+                } else if (response.response_type === "list") {
+                     if (response.data && response.data.items) {
+                        addMessage(`Here is the list for "${response.data.list_title || 'Information'}":`, 'bot');
+                        displayList(response.data);
+                    } else {
+                        addMessage("Sorry, I couldn't retrieve the list.", 'bot');
+                    }
+                } else if (response.response_type === "history") {
+                    if (response.data && response.data.history) {
+                        addMessage("Here is your recent chat history:", 'bot');
+                        displayList({ list_title: "Chat History", items: response.data.history });
+                    } else {
+                        addMessage("Sorry, I couldn't retrieve your chat history.", 'bot');
+                    }
+                } else if (response.response_type === "error") {
+                    addMessage(`Error: ${response.data.message}`, 'bot');
+                } else {
+                    addMessage(JSON.stringify(response.data), 'bot');
+                }
+            }
+
+
+            async function sendMessage() {
+                const messageText = chatInput.value.trim();
+                if (messageText === '') return;
+
+                addMessage(messageText, 'user');
+                chatInput.value = '';
+                
+                // Add loading indicator
+                const loadingMessageDiv = document.createElement('div');
+                loadingMessageDiv.classList.add('message', 'message-bot');
+                loadingMessageDiv.innerHTML = `
+                    <div class="message-bubble">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            <span>Thinking...</span>
+                        </div>
+                    </div>`;
+                chatMessages.appendChild(loadingMessageDiv);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+
+                try {
+                    const response = await fetch('/api/chat', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ message: messageText }),
+                    });
+                    
+                    // Remove loading indicator
+                    chatMessages.removeChild(loadingMessageDiv);
+
+                    if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({data: {message: "Server error"}}));
+                        handleBotResponse({ response_type: "error", data: { message: errorData.data.message || `HTTP error! Status: ${response.status}` } });
+                        return;
+                    }
+                    
+                    const responseData = await response.json();
+                    handleBotResponse(responseData);
+
+                } catch (error) {
+                     // Remove loading indicator
+                    if (chatMessages.contains(loadingMessageDiv)) {
+                        chatMessages.removeChild(loadingMessageDiv);
+                    }
+                    console.error('Error sending message:', error);
+                    handleBotResponse({ response_type: "error", data: { message: "Failed to connect to the server. Please try again." } });
+                }
+            }
+
+            sendButton.addEventListener('click', sendMessage);
+            chatInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

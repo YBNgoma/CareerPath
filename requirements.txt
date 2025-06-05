@@ -1,0 +1,7 @@
+Flask
+Werkzeug
+langchain
+langchain-community
+faiss-cpu
+sentence-transformers
+pypdf

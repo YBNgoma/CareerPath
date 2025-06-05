@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Career Assessment - Career Guidance</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- For displaying results chart -->
+</head>
+<body>
+    <div class="animated-bg"></div>
+    <div class="main-content">
+        <header class="header">
+            <div class="container">
+                <nav class="nav">
+                    <a href="/" class="logo">CareerPath ZW</a>
+                    <ul class="nav-links">
+                        <li><a href="/" class="nav-link">Home</a></li>
+                        <li><a href="/assessment" class="nav-link active">Assessment</a></li>
+                        <li><a href="/profile" class="nav-link">Profile</a></li>
+                        <li id="auth-links-assessment">
+                            <!-- Login/Register or Logout links -->
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </header>
+
+        <main class="container mt-5">
+            <div class="assessment-container">
+                <div id="assessment-questions-area">
+                    <div class="text-center mb-4">
+                        <h1 class="hero-title" style="font-size: 2.5rem;">Career Interest Assessment</h1>
+                        <p class="hero-subtitle" style="font-size: 1.1rem;">Answer a few questions to discover career paths that might suit you.</p>
+                    </div>
+                    <!-- Questions will be loaded here by JavaScript -->
+                    <div id="questions-container"></div>
+                    <div class="text-center mt-4">
+                        <button id="submit-assessment-btn" class="btn btn-primary" style="display: none;">
+                            <span class="btn-text">View My Results</span>
+                            <span id="assessment-spinner" class="spinner" style="display: none; border-top-color: white; width:16px; height:16px;"></span>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="assessment-results-area" class="results-container" style="display: none;">
+                    <div class="card">
+                        <div class="card-header">
+                             <h2 class="card-title text-center" style="width:100%;">Your Assessment Results</h2>
+                        </div>
+                        <div class="card-content">
+                            <p class="text-secondary text-center">Based on your answers, here are some career paths that might interest you:</p>
+                            <div id="results-breakdown" class="mt-3">
+                                <!-- Results will be populated here -->
+                            </div>
+                            <div class="mt-4" style="height: 400px;"> <!-- Chart container -->
+                                <canvas id="resultsChart"></canvas>
+                            </div>
+                            <div class="text-center mt-4">
+                                <button id="retake-assessment-btn" class="btn btn-secondary"><i class="fas fa-redo"></i> Retake Assessment</button>
+                                <a href="/profile" class="btn btn-outline" style="margin-left: 10px;"><i class="fas fa-user"></i> View My Profile</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer mt-5 text-center" style="padding: 2rem 0; border-top: 1px solid var(--border-color);">
+            <p>&copy; <span id="currentYear"></span> CareerPath ZW. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script>
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
+        const authLinksContainerAssessment = document.getElementById('auth-links-assessment');
+
+        const questionsContainer = document.getElementById('questions-container');
+        const submitAssessmentBtn = document.getElementById('submit-assessment-btn');
+        const assessmentQuestionsArea = document.getElementById('assessment-questions-area');
+        const assessmentResultsArea = document.getElementById('assessment-results-area');
+        const resultsBreakdown = document.getElementById('results-breakdown');
+        const retakeAssessmentBtn = document.getElementById('retake-assessment-btn');
+        const assessmentSpinner = document.getElementById('assessment-spinner');
+        const assessmentButtonText = submitAssessmentBtn.querySelector('.btn-text');
+
+        let assessmentQuestions = []; // To store questions from backend or define here
+        let userAnswers = [];
+        let resultsChartInstance = null;
+
+        // Dummy questions for now, replace with actual fetch or CAREER_ASSESSMENT_QUESTIONS from your Flask app
+        const CAREER_ASSESSMENT_QUESTIONS = [
+            {
+                id: 1,
+                question: "Which of these activities do you enjoy the most in your free time?",
+                options: [
+                    { text: "Helping and caring for people, or volunteering for a cause." },
+                    { text: "Solving complex puzzles, brain-teasers, or strategy games." },
+                    { text: "Working with computers, gadgets, or building things with tools." },
+                    { text: "Teaching, mentoring, or explaining concepts to others." }
+                ]
+            },
+            {
+                id: 2,
+                question: "How do you typically handle high-pressure situations or tight deadlines?",
+                options: [
+                    { text: "I remain calm and focused, often performing well under pressure." },
+                    { text: "I manage well with a clear plan and support from others." },
+                    { text: "I prefer environments with less direct pressure and more predictability." },
+                    { text: "I find challenges exciting and thrive in dynamic, fast-paced settings." }
+                ]
+            },
+            {
+                id: 3,
+                question: "What motivates you most in a potential career?",
+                options: [
+                    { text: "Making a tangible, positive difference in people's lives or society." },
+                    { text: "The opportunity to innovate, design, and build new things." },
+                    { text: "Achieving financial stability and a comfortable lifestyle." },
+                    { text: "Continuous learning, sharing knowledge, and personal growth." }
+                ]
+            },
+            {
+                id: 4,
+                question: "Which work environment appeals to you more?",
+                options: [
+                    { text: "A collaborative environment working closely with a team." },
+                    { text: "An environment where I can focus independently on tasks and projects." },
+                    { text: "A structured environment with clear guidelines and procedures." },
+                    { text: "A dynamic environment with varied tasks and new challenges." }
+                ]
+            },
+            {
+                id: 5,
+                question: "Are you more inclined towards tasks that are:",
+                options: [
+                    { text: "People-oriented and involve a lot of interaction." },
+                    { text: "Data-oriented, requiring analysis and logical thinking." },
+                    { text: "Hands-on, involving physical work or operating machinery." },
+                    { text: "Idea-oriented, involving creativity and strategic planning."}
+                ]
+            }
+        ];
+        assessmentQuestions = CAREER_ASSESSMENT_QUESTIONS; // Use predefined questions
+
+        function updateAuthLinksAssessment() {
+            if (localStorage.getItem('userLoggedIn') === 'true') {
+                authLinksContainerAssessment.innerHTML = `<li><a href="#" id="logout-link-assessment" class="nav-link">Logout</a></li>`;
+                document.getElementById('logout-link-assessment').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    localStorage.removeItem('userLoggedIn');
+                    localStorage.removeItem('user_email');
+                    localStorage.removeItem('user_id');
+                    window.location.href = '/login'; // Or back to home
+                });
+            } else {
+                authLinksContainerAssessment.innerHTML = `
+                    <li><a href="/login" class="nav-link">Login</a></li>
+                    <li><a href="/register" class="nav-link">Register</a></li>`;
+            }
+        }
+
+        function renderQuestions() {
+            questionsContainer.innerHTML = '';
+            assessmentQuestions.forEach((q, index) => {
+                const questionCard = document.createElement('div');
+                questionCard.className = 'question-card';
+                questionCard.innerHTML = `
+                    <div class="question-number">${index + 1}</div>
+                    <p class="question-text">${q.question}</p>
+                    <ul class="options-list">
+                        ${q.options.map((opt, optIndex) => `
+                            <li class="option-item">
+                                <button class="option-button" data-question-index="${index}" data-option-index="${optIndex}">
+                                    ${opt.text}
+                                </button>
+                            </li>
+                        `).join('')}
+                    </ul>
+                `;
+                questionsContainer.appendChild(questionCard);
+            });
+
+            userAnswers = new Array(assessmentQuestions.length).fill(null);
+            attachOptionListeners();
+            submitAssessmentBtn.style.display = 'none'; // Hide initially
+        }
+
+        function attachOptionListeners() {
+            document.querySelectorAll('.option-button').forEach(button => {
+                button.addEventListener('click', function() {
+                    const questionIndex = parseInt(this.dataset.questionIndex);
+                    const optionIndex = parseInt(this.dataset.optionIndex);
+                    userAnswers[questionIndex] = optionIndex;
+
+                    // Update UI for selected option
+                    this.closest('.options-list').querySelectorAll('.option-button').forEach(btn => btn.classList.remove('selected'));
+                    this.classList.add('selected');
+                    
+                    checkAllAnswered();
+                });
+            });
+        }
+
+        function checkAllAnswered() {
+            if (userAnswers.every(answer => answer !== null)) {
+                submitAssessmentBtn.style.display = 'inline-flex';
+            }
+        }
+        
+        function displayResults(resultsData) {
+            resultsBreakdown.innerHTML = ''; // Clear previous results
+            const recommendedCareers = resultsData.recommended_careers || [];
+
+            if (recommendedCareers.length > 0) {
+                recommendedCareers.forEach(career => {
+                    const careerDiv = document.createElement('div');
+                    careerDiv.className = 'career-result';
+                    careerDiv.innerHTML = `
+                        <div class="career-header">
+                            <span class="career-name">${career.career}</span>
+                            <span class="career-score">${career.percentage}% Match</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${career.percentage}%;"></div>
+                        </div>
+                        <p class="text-secondary">${career.pathway.description || 'Learn more about this exciting career.'}</p>
+                        <a href="#" class="btn btn-sm btn-outline mt-2 learn-more-btn" data-career-key="${career.career.toLowerCase()}">Learn More About ${career.career}</a>
+                    `;
+                    resultsBreakdown.appendChild(careerDiv);
+                });
+                 // Attach listeners for "Learn More" buttons (to redirect or show modal)
+                document.querySelectorAll('.learn-more-btn').forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        const careerKey = this.dataset.careerKey;
+                        // For now, just alert. Ideally, this would fetch detailed pathway info and display it,
+                        // or redirect to a page with `index.html?showPathway=${careerKey}`
+                        alert(`Displaying details for ${careerKey}. This can be implemented by storing the pathway in JS accessible from index.html or by fetching it again.`);
+                        // If you want to redirect to index.html and trigger pathway display:
+                        // window.location.href = `/?showPathway=${careerKey}`; // (requires logic on index.html to handle this query param)
+                        // Or, better, if you have a function on index.html to display pathways:
+                        // displayPathway(career.pathway) could be called if this script was merged or index.html's functions were global
+                    });
+                });
+
+
+                // Prepare data for Chart.js
+                const chartLabels = recommendedCareers.map(c => c.career);
+                const chartScores = recommendedCareers.map(c => c.percentage);
+
+                renderResultsChart(chartLabels, chartScores);
+
+            } else {
+                resultsBreakdown.innerHTML = '<p>No specific career recommendations based on your answers. Try exploring different options or retaking the assessment.</p>';
+            }
+
+            assessmentQuestionsArea.style.display = 'none';
+            assessmentResultsArea.style.display = 'block';
+            assessmentResultsArea.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function renderResultsChart(labels, scores) {
+            const ctx = document.getElementById('resultsChart').getContext('2d');
+            if (resultsChartInstance) {
+                resultsChartInstance.destroy();
+            }
+            resultsChartInstance = new Chart(ctx, {
+                type: 'bar', // Can be 'pie', 'doughnut', 'bar'
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Career Match Percentage',
+                        data: scores,
+                        backgroundColor: [ // Add more colors if more careers are expected
+                            'rgba(102, 126, 234, 0.6)',
+                            'rgba(240, 147, 251, 0.6)',
+                            'rgba(79, 172, 254, 0.6)',
+                            'rgba(72, 187, 120, 0.6)',
+                            'rgba(237, 137, 54, 0.6)'
+                        ],
+                        borderColor: [
+                            'rgba(102, 126, 234, 1)',
+                            'rgba(240, 147, 251, 1)',
+                            'rgba(79, 172, 254, 1)',
+                            'rgba(72, 187, 120, 1)',
+                            'rgba(237, 137, 54, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y', // For horizontal bar chart, good for career names
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            max: 100,
+                             title: { display: true, text: 'Match Percentage (%)'}
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false // Or true if preferred
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: ${context.raw}%`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+
+        submitAssessmentBtn.addEventListener('click', async function() {
+            assessmentButtonText.style.display = 'none';
+            assessmentSpinner.style.display = 'inline-block';
+            this.disabled = true;
+
+            // console.log('Submitting answers:', userAnswers); // For debugging
+
+            try {
+                const response = await fetch('/api/assessment', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ answers: userAnswers }),
+                });
+                const data = await response.json();
+
+                if (data.success && data.results) {
+                    displayResults(data.results);
+                } else {
+                    resultsBreakdown.innerHTML = `<p class="text-error">Error submitting assessment: ${data.message || 'Unknown error'}</p>`;
+                    assessmentQuestionsArea.style.display = 'none'; // Still hide questions
+                    assessmentResultsArea.style.display = 'block'; // Show results area even for error message
+                }
+            } catch (error) {
+                console.error('Error submitting assessment:', error);
+                resultsBreakdown.innerHTML = `<p class="text-error">An unexpected error occurred. Please try again.</p>`;
+                assessmentQuestionsArea.style.display = 'none';
+                assessmentResultsArea.style.display = 'block';
+            } finally {
+                assessmentButtonText.style.display = 'inline-block';
+                assessmentSpinner.style.display = 'none';
+                this.disabled = false;
+            }
+        });
+
+        retakeAssessmentBtn.addEventListener('click', function() {
+            assessmentResultsArea.style.display = 'none';
+            assessmentQuestionsArea.style.display = 'block';
+            renderQuestions(); // Re-render questions and reset answers
+            assessmentQuestionsArea.scrollIntoView({ behavior: 'smooth' });
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            updateAuthLinksAssessment();
+            renderQuestions();
+        });
+    </script>
+</body>
+</html>
